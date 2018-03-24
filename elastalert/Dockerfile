@@ -1,11 +1,6 @@
-# Elastalert Docker image running on Alpine Linux.
-# Build image with: docker build -t ivankrizsan/elastalert:latest .
-#
-# The WORKDIR instructions are deliberately left, as it is recommended to use WORKDIR over the cd command.
+FROM ubuntu:latest
 
-FROM iron/python:2
-
-MAINTAINER Ivan Krizsan, https://github.com/krizsan
+MAINTAINER Ailbirt Javier 
 
 # Set this environment variable to true to set timezone on container start.
 ENV SET_CONTAINER_TIMEZONE false
@@ -38,16 +33,16 @@ WORKDIR /opt
 COPY ./start-elastalert.sh /opt/
 
 # Install software required for Elastalert and NTP for time synchronization.
-RUN apk update && \
-    apk upgrade && \
-    apk add ca-certificates openssl-dev libffi-dev python-dev gcc musl-dev tzdata openntpd && \
-    rm -rf /var/cache/apk/* && \
+RUN apt-get update && apt-get upgrade -y
+RUN apt-get -y install build-essential python-setuptools python2.7 python2.7-dev libssl-dev git tox wget unzip
+#RUN apt-get -y install ca-certificates openssl-dev libffi-dev python-dev gcc musl-dev tzdata openntpd
+RUN apt-get clean
+
 # Install pip - required for installation of Elastalert.
-    wget https://bootstrap.pypa.io/get-pip.py && \
-    python get-pip.py && \
-    rm get-pip.py && \
+RUN easy_install pip
+
 # Download and unpack Elastalert.
-    wget ${ELASTALERT_URL} && \
+RUN wget ${ELASTALERT_URL} && \
     unzip *.zip && \
     rm *.zip && \
     mv e* ${ELASTALERT_DIRECTORY_NAME}
@@ -55,25 +50,27 @@ RUN apk update && \
 WORKDIR ${ELASTALERT_HOME}
 
 # Install Elastalert.
-RUN python setup.py install && \
-    pip install -e . && \
-    pip uninstall twilio --yes && \
-    pip install twilio==6.0.0 && \
+RUN pip install -r requirements.txt
+
+#Downgrade dateutil to 2.6.1 version due to https://github.com/Yelp/elastalert/issues/1602 bug.
+   
+RUN pip uninstall -y "python-dateutil"
+RUN pip install "python-dateutil==2.6.1" --force-reinstall
 
 # Install Supervisor.
-    easy_install supervisor && \
+RUN easy_install supervisor
 
 # Make the start-script executable.
-    chmod +x /opt/start-elastalert.sh && \
+RUN    chmod +x /opt/start-elastalert.sh
 
 # Create directories. The /var/empty directory is used by openntpd.
-    mkdir -p ${CONFIG_DIR} && \
+RUN mkdir -p ${CONFIG_DIR} && \
     mkdir -p ${RULES_DIRECTORY} && \
     mkdir -p ${LOG_DIR} && \
-    mkdir -p /var/empty && \
+    mkdir -p /var/empty
 
 # Copy default configuration files to configuration directory.
-    cp ${ELASTALERT_HOME}/config.yaml.example ${ELASTALERT_CONFIG} && \
+RUN cp ${ELASTALERT_HOME}/config.yaml.example ${ELASTALERT_CONFIG} && \
     cp ${ELASTALERT_HOME}/supervisord.conf.example ${ELASTALERT_SUPERVISOR_CONF} && \
 
 # Elastalert configuration:
@@ -93,17 +90,14 @@ RUN python setup.py install && \
     sed -i -e"s|python elastalert.py|python -m elastalert.elastalert --config ${ELASTALERT_CONFIG}|g" ${ELASTALERT_SUPERVISOR_CONF} && \
 
 # Copy the Elastalert configuration file to Elastalert home directory to be used when creating index first time an Elastalert container is launched.
-    cp ${ELASTALERT_CONFIG} ${ELASTALERT_HOME}/config.yaml && \
+    cp ${ELASTALERT_CONFIG} ${ELASTALERT_HOME}/config.yaml
 
 # Clean up.
-    apk del python-dev && \
-    apk del musl-dev && \
-    apk del gcc && \
-    apk del openssl-dev && \
-    apk del libffi-dev && \
+RUN apt-get clean
 
 # Add Elastalert to Supervisord.
-    supervisord -c ${ELASTALERT_SUPERVISOR_CONF}
+RUN supervisord -c ${ELASTALERT_SUPERVISOR_CONF}
+
 
 # Define mount points.
 VOLUME [ "${CONFIG_DIR}", "${RULES_DIRECTORY}", "${LOG_DIR}"]
