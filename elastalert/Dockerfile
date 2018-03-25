@@ -35,7 +35,7 @@ COPY ./start-elastalert.sh /opt/
 # Install software required for Elastalert and NTP for time synchronization.
 RUN apt-get update && apt-get upgrade -y
 RUN apt-get -y install build-essential python-setuptools python2.7 python2.7-dev libssl-dev git tox wget unzip
-#RUN apt-get -y install ca-certificates openssl-dev libffi-dev python-dev gcc musl-dev tzdata openntpd
+RUN apt-get -y install ca-certificates openssl libffi-dev python-dev gcc musl-dev tzdata openntpd
 RUN apt-get clean
 
 # Install pip - required for installation of Elastalert.
