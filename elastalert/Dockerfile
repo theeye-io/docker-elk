@@ -3,9 +3,9 @@ FROM ubuntu:latest
 MAINTAINER Ailbirt Javier 
 
 # Set this environment variable to true to set timezone on container start.
-ENV SET_CONTAINER_TIMEZONE false
+ENV SET_CONTAINER_TIMEZONE False
 # Default container timezone as found under the directory /usr/share/zoneinfo/.
-ENV CONTAINER_TIMEZONE Europe/Stockholm
+ENV CONTAINER_TIMEZONE America/Bogota
 # URL from which to download Elastalert.
 ENV ELASTALERT_URL https://github.com/Yelp/elastalert/archive/master.zip
 # Directory holding configuration for Elastalert and Supervisor.
@@ -19,13 +19,19 @@ ENV LOG_DIR /opt/logs
 # Elastalert home directory name.
 ENV ELASTALERT_DIRECTORY_NAME elastalert
 # Elastalert home directory full path.
-ENV ELASTALERT_HOME /opt/${ELASTALERT_DIRECTORY_NAME}
+ENV ELASTALERT_HOME /opt/elastalert
 # Supervisor configuration file for Elastalert.
 ENV ELASTALERT_SUPERVISOR_CONF ${CONFIG_DIR}/elastalert_supervisord.conf
 # Alias, DNS or IP of Elasticsearch host to be queried by Elastalert. Set in default Elasticsearch configuration file.
 ENV ELASTICSEARCH_HOST elasticsearchhost
 # Port on above Elasticsearch host. Set in default Elasticsearch configuration file.
 ENV ELASTICSEARCH_PORT 9200
+# Use TLS to connect to Elasticsearch (True or False)
+ENV ELASTICSEARCH_TLS False
+# Verify TLS
+ENV ELASTICSEARCH_TLS_VERIFY False
+# ElastAlert writeback index
+ENV ELASTALERT_INDEX elastalert_status
 
 WORKDIR /opt
 
@@ -36,26 +42,28 @@ COPY ./start-elastalert.sh /opt/
 RUN apt-get update && apt-get upgrade -y
 RUN apt-get -y install build-essential python-setuptools python2.7 python2.7-dev libssl-dev git tox wget unzip
 RUN apt-get -y install ca-certificates openssl libffi-dev python-dev gcc musl-dev tzdata openntpd
-RUN apt-get clean
 
 # Install pip - required for installation of Elastalert.
 RUN easy_install pip
 
 # Download and unpack Elastalert.
-RUN wget ${ELASTALERT_URL} && \
-    unzip *.zip && \
-    rm *.zip && \
-    mv e* ${ELASTALERT_DIRECTORY_NAME}
+RUN wget -O elastalert.zip "${ELASTALERT_URL}" && \
+    unzip elastalert.zip && \
+    rm elastalert.zip && \
+    mv e* "${ELASTALERT_HOME}"
 
-WORKDIR ${ELASTALERT_HOME}
+WORKDIR "${ELASTALERT_HOME}"
 
-# Install Elastalert.
-RUN pip install -r requirements.txt
+RUN  pip install -e .
+#RUN pip install -r requirements.txt
 
 #Downgrade dateutil to 2.6.1 version due to https://github.com/Yelp/elastalert/issues/1602 bug.
    
 RUN pip uninstall -y "python-dateutil"
 RUN pip install "python-dateutil==2.6.1" --force-reinstall
+
+# Install Elastalert.
+RUN python setup.py install
 
 # Install Supervisor.
 RUN easy_install supervisor
