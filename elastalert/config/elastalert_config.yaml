@@ -1,9 +1,10 @@
 #Searchguard compatilbity
 # Connect with TLS to Elasticsearch
-use_ssl: False 
+use_ssl: False
+#ca_certs: '/opt/config/chain.pem'
 
 # Verify TLS certificates
-verify_certs: False
+#verify_certs: True
 
 # This is the folder that contains the rule yaml files
 # Any .yaml file will be loaded as a rule
@@ -31,6 +32,7 @@ es_port: 9200
 
 # Connect with SSL to elasticsearch
 #use_ssl: True
+
 
 # Option basic-auth username and password for elasticsearch
 es_username: admin
