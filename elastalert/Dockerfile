@@ -4,10 +4,11 @@ MAINTAINER Ailbirt Javier
 
 #Avoid debconf issues
 ENV DEBIAN_FRONTEND noninteractive
-# Set this environment variable to true to set timezone on container start.
+## Set this environment variable to true to set timezone on container start.
 ENV SET_CONTAINER_TIMEZONE False
-# Default container timezone as found under the directory /usr/share/zoneinfo/.
-ENV CONTAINER_TIMEZONE America/Bogota
+ENV CONTAINER_TIMEZONE False
+## Default container timezone as found under the directory /usr/share/zoneinfo/.
+#ENV CONTAINER_TIMEZONE America/Bogota
 # URL from which to download Elastalert.
 ENV ELASTALERT_URL https://github.com/Yelp/elastalert/archive/master.zip
 # Directory holding configuration for Elastalert and Supervisor.
