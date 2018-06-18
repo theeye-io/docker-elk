@@ -103,3 +103,21 @@ sg_own_index:
     '${user_name}':
       '*':
         - INDICES_ALL
+
+# Elastalert role:
+sg_elastalert:
+  cluster:
+    - UNLIMITED
+#  cluster:
+#    - MONITOR
+#    - CLUSTER_MONITOR
+#    - INDICES_MONITOR
+#    - CLUSTER_COMPOSITE_OPS_RO
+#    - "indices:data/write/bulk"
+  indices:
+    '*':
+      '*':
+        - READ
+    'elastalert_status':
+      '*':
+        - '*'

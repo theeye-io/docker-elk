@@ -12,12 +12,16 @@ services:
         soft: -1
         hard: -1
     volumes:
-      - /media/esdata1:/usr/share/elasticsearch/data
+      - ./data/esdata1:/usr/share/elasticsearch/data
       - ./elasticsearch/config/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml:ro
       - ./elasticsearch/config/sg:/usr/share/elasticsearch/config/sg:ro
     ports:
       - 9200:9200
       - 9300:9300
+    logging:
+      driver: json-file
+      options:
+        max-size: 50m
     networks:
       - elk
 
@@ -34,9 +38,13 @@ services:
         soft: -1
         hard: -1
     volumes:
-      - /media/esdata2:/usr/share/elasticsearch/data
+      - ./data/esdata2:/usr/share/elasticsearch/data
       - ./elasticsearch/config/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml:ro
       - ./elasticsearch/config/sg:/usr/share/elasticsearch/config/sg:ro
+    logging:
+      driver: json-file
+      options:
+        max-size: 50m
     networks:
       - elk
 
@@ -46,12 +54,21 @@ services:
     volumes:
       - ./logstash/config/logstash.yml:/usr/share/logstash/config/logstash.yml:ro
       - ./logstash/pipeline:/usr/share/logstash/pipeline:ro
+      - ./logstash/keys/rappilogs-ca.crt:/etc/ca.crt
+      - ./logstash/keys/keyfile-decrypted.key:/etc/server.key
+      - ./logstash/keys/certificate.crt:/etc/server.crt
+
     ports:
       - "5000:5000"
+      - "5044:5044"
     environment:
       LS_JAVA_OPTS: "-Xmx256m -Xms256m"
     networks:
       - elk
+    logging:
+      driver: json-file
+      options:
+        max-size: 50m
     depends_on:
       - elasticsearch
 
@@ -64,6 +81,10 @@ services:
       - "5601:5601"
     networks:
       - elk
+    logging:
+      driver: json-file
+      options:
+        max-size: 50m
     depends_on:
       - elasticsearch
 
@@ -72,22 +93,27 @@ services:
     image: theeye/elastalert
     #image: ivankrizsan/elastalert
     container_name: elastalert
-    environment:
-      ELASTICSEARCH_HOST: "elasticsearch"
-      ELASTICSEARCH_PORT: "9200"
-      ELASTALERT_CONFIG: "/opt/config/elastalert_config.yaml"
-
     volumes:
       - ./elastalert/rules:/opt/rules
       - ./elastalert/config:/opt/config
       - ./elastalert/logs:/opt/logs
+      - ./elastalert/start.sh:/opt/start.sh
       - ./elasticsearch/config/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml:ro
     networks:
       - elk
     depends_on:
       - elasticsearch
       - mail
-    command: "tail -f /var/log/lastlog"
+    logging:
+      driver: json-file
+      options:
+        max-size: 50m
+    environment:
+       - elasticHost=elasticsearch
+       - elasticPort=9200
+       - elasticConfigsPath=/opt/config
+#   command: "tail -f /var/log/lastlog"
+    command: "/opt/start.sh"
 
 
   mail:
@@ -98,6 +124,10 @@ services:
     environment:
       maildomain: "your.domain.here"
       smtp_user: "user:password"
+    logging:
+      driver: json-file
+      options:
+        max-size: 50m
     networks:
       - elk
 
@@ -115,6 +145,10 @@ services:
       - kibana
     ports:
       - "80:80"
+    logging:
+      driver: json-file
+      options:
+        max-size: 50m
     networks:
       - elk
 

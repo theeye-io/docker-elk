@@ -1,10 +1,11 @@
 #Searchguard compatilbity
 # Connect with TLS to Elasticsearch
-use_ssl: False
+#use_ssl: False
 #ca_certs: '/opt/config/chain.pem'
 
 # Verify TLS certificates
-#verify_certs: True
+# Until we migrate this to a cross cloud solution TLS over IPSEC on a specific resources group is a waste of money
+verify_certs: False
 
 # This is the folder that contains the rule yaml files
 # Any .yaml file will be loaded as a rule
@@ -35,6 +36,8 @@ es_port: 9200
 
 
 # Option basic-auth username and password for elasticsearch
+# Some weird searchguard issue doesn't allow the recomended sg_role for elastalert.
+# After some time of reading the open bugs on github, I leave this config using admin access once the integration works properly an unprivilegied user is recomended.
 es_username: admin
 es_password: admin
 
