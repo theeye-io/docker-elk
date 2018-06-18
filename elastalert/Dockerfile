@@ -2,6 +2,8 @@ FROM ubuntu:latest
 
 MAINTAINER Ailbirt Javier 
 
+#Avoid debconf issues
+ENV DEBIAN_FRONTEND noninteractive
 # Set this environment variable to true to set timezone on container start.
 ENV SET_CONTAINER_TIMEZONE False
 # Default container timezone as found under the directory /usr/share/zoneinfo/.

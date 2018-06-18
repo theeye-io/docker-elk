@@ -1,0 +1,52 @@
+#Searchguard compatilbity
+# Connect with TLS to Elasticsearch
+#use_ssl: False
+#ca_certs: '/opt/config/chain.pem'
+
+# Verify TLS certificates
+# Until we migrate this to a cross cloud solution TLS over IPSEC on a specific resources group is a waste of money
+verify_certs: False
+
+# This is the folder that contains the rule yaml files
+# Any .yaml file will be loaded as a rule
+rules_folder: /opt/rules
+
+# How often ElastAlert will query elasticsearch
+# The unit can be anything from weeks to seconds
+run_every:
+  seconds: 30
+
+# ElastAlert will buffer results from the most recent
+# period of time, in case some log sources are not in real time
+buffer_time:
+  minutes: 2
+
+# The elasticsearch hostname for metadata writeback
+# Note that every rule can have it's own elasticsearch host
+es_host: elasticsearch
+
+# The elasticsearch port
+es_port: 9200
+
+# Optional URL prefix for elasticsearch
+#es_url_prefix: elasticsearch
+
+# Connect with SSL to elasticsearch
+#use_ssl: True
+
+
+# Option basic-auth username and password for elasticsearch
+# Some weird searchguard issue doesn't allow the recomended sg_role for elastalert.
+# After some time of reading the open bugs on github, I leave this config using admin access once the integration works properly an unprivilegied user is recomended.
+es_username: admin
+es_password: admin
+
+# The index on es_host which is used for metadata storage
+# This can be a unmapped index, but it is recommended that you run
+# elastalert-create-index to set a mapping
+writeback_index: elastalert_status
+
+# If an alert fails for some reason, ElastAlert will retry
+# sending the alert until this time period has elapsed
+alert_time_limit:
+  days: 1
