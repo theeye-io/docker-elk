@@ -1,48 +1,170 @@
-version: '2'
-
+version: '2.2'
 services:
-
   elasticsearch:
-    build:
-      context: elasticsearch/
-    volumes:
-      - ./elasticsearch/config/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml:ro
-    ports:
-      - "9200:9200"
-      - "9300:9300"
+    image: theeye/docker-elk
+    container_name: elasticsearch
     environment:
-      ES_JAVA_OPTS: "-Xmx256m -Xms256m"
+      - cluster.name=docker-cluster
+      - bootstrap.memory_lock=true
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - ./data/esdata1:/usr/share/elasticsearch/data
+      - ./elasticsearch/config/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml:ro
+      - ./elasticsearch/config/sg:/usr/share/elasticsearch/config/sg:ro
+    ports:
+      - 9200:9200
+      - 9300:9300
+    logging:
+      driver: json-file
+      options:
+        max-size: 50m
+    networks:
+      - elk
+
+  elasticsearch2:
+    image: theeye/docker-elk
+    container_name: elasticsearch2
+    environment:
+      - cluster.name=docker-cluster
+      - bootstrap.memory_lock=true
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+      - "discovery.zen.ping.unicast.hosts=elasticsearch"
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - ./data/esdata2:/usr/share/elasticsearch/data
+      - ./elasticsearch/config/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml:ro
+      - ./elasticsearch/config/sg:/usr/share/elasticsearch/config/sg:ro
+    logging:
+      driver: json-file
+      options:
+        max-size: 50m
     networks:
       - elk
 
   logstash:
-    build:
-      context: logstash/
+    image: docker.elastic.co/logstash/logstash-oss:6.2.2
+    container_name: logstash
     volumes:
       - ./logstash/config/logstash.yml:/usr/share/logstash/config/logstash.yml:ro
       - ./logstash/pipeline:/usr/share/logstash/pipeline:ro
+      - ./logstash/keys/rappilogs-ca.crt:/etc/ca.crt
+      - ./logstash/keys/keyfile-decrypted.key:/etc/server.key
+      - ./logstash/keys/certificate.crt:/etc/server.crt
+
     ports:
       - "5000:5000"
+      - "5044:5044"
     environment:
       LS_JAVA_OPTS: "-Xmx256m -Xms256m"
     networks:
       - elk
+    logging:
+      driver: json-file
+      options:
+        max-size: 50m
     depends_on:
       - elasticsearch
 
   kibana:
-    build:
-      context: kibana/
+    image: theeye/searchguard-kibana
+    container_name: kibana
     volumes:
       - ./kibana/config/:/usr/share/kibana/config:ro
     ports:
       - "5601:5601"
     networks:
       - elk
+    logging:
+      driver: json-file
+      options:
+        max-size: 50m
     depends_on:
       - elasticsearch
 
-networks:
 
+  elastalert:
+    image: theeye/elastalert
+    #image: ivankrizsan/elastalert
+    container_name: elastalert
+    volumes:
+      - ./elastalert/rules:/opt/rules
+      - ./elastalert/config:/opt/config
+      - ./elastalert/logs:/opt/logs
+      - ./elastalert/start.sh:/opt/start.sh
+      - ./elasticsearch/config/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml:ro
+    networks:
+      - elk
+    depends_on:
+      - elasticsearch
+      - mail
+    logging:
+      driver: json-file
+      options:
+        max-size: 50m
+    environment:
+       - elasticHost=elasticsearch
+       - elasticPort=9200
+       - elasticConfigsPath=/opt/config
+#   command: "tail -f /var/log/lastlog"
+    command: "/opt/start.sh"
+
+
+  mail:
+    image: catatnight/postfix
+    labels:
+      role: admin
+      io.rancher.scheduler.affinity:host_label: role=admin
+    environment:
+      maildomain: "your.domain.here"
+      smtp_user: "user:password"
+    logging:
+      driver: json-file
+      options:
+        max-size: 50m
+    networks:
+      - elk
+
+#  nginx:
+#    image: nginx
+#    container_name: nginx
+#    volumes:
+#      - ./kibana-nginx/bgh.htpasswd:/etc/nginx/conf.d/bgh.htpasswd
+#      - ./kibana-nginx/nginx.conf:/etc/nginx/nginx.conf
+#      - ./kibana-nginx/kibanasimple.conf:/etc/nginx/sites-enabled/kibanasimple.conf
+#    depends_on:
+#      - kibana
+#      - elasticsearch
+#    links:
+#      - kibana
+#    ports:
+#      - "80:80"
+#    logging:
+#      driver: json-file
+#      options:
+#        max-size: 50m
+#    networks:
+#      - elk
+
+
+
+
+#volumes:
+#  esdata1:
+#    driver: local-persist
+#    driver_opts:
+#        mountpoint: /media/esdata1
+#  esdata2:
+#    driver: local-persist
+#    driver_opts:
+#        mountpoint: /media/esdata2
+
+networks:
   elk:
     driver: bridge
