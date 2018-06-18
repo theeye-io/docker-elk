@@ -17,12 +17,15 @@ ENV MEMORY_LOCK false
 COPY config/sg/ config/sg/
 COPY bin/ bin/
 
+#Temporary fix due to Docker Issue:
+#https://github.com/pires/docker-elasticsearch/issues/56
+ENV ES_TMPDIR /tmp
 # Search Guard plugin
 # https://github.com/floragunncom/search-guard/wiki
-RUN elasticsearch-plugin install --batch com.floragunn:search-guard-6:6.2.3-22.0 \
-	&& chmod +x plugins/search-guard-6/tools/*.sh \
-	&& chown -R elasticsearch config/sg/ \
-	&& chmod -R go= config/sg/
+RUN elasticsearch-plugin install --batch com.floragunn:search-guard-6:6.2.3-22.0 
+RUN chmod +x plugins/search-guard-6/tools/*.sh 
+RUN chown -R elasticsearch config/sg/ 
+RUN chmod -R go= config/sg/
 
 # Add your elasticsearch plugins setup here
 # Example: RUN elasticsearch-plugin install analysis-icu
